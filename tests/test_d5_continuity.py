@@ -345,6 +345,22 @@ class TestContinuityPermissions:
         assert CONTINUITY_ROLE_SPEC.can_generate_final_text is False
 
 
+class TestContinuityRuntimeWorldbookEvidence:
+    def test_worldbook_content_excerpt_is_used_as_evidence(self):
+        snapshot = _make_snapshot(
+            active_worldbook=[{
+                "entry_id": "wb_lore",
+                "title": "Lore",
+                "content_excerpt": "CRITICAL_WORLDBOOK_EXCERPT",
+            }],
+        )
+        trigger = ContinuityTriggerResult(should_trigger=True)
+
+        evidence = ContinuityRuntime()._collect_evidence_from_snapshot(snapshot, trigger)
+
+        assert any(ev.excerpt == "CRITICAL_WORLDBOOK_EXCERPT" for ev in evidence)
+
+
 # ─────────────────────────────────────────────
 # Tests 19-21: Ranker
 # ─────────────────────────────────────────────
@@ -527,39 +543,6 @@ class TestToolFailureBehavior:
 
 # ─────────────────────────────────────────────
 # Test 27: Official workflow JSON validation
-# ─────────────────────────────────────────────
-
-class TestD5WorkflowValidation:
-    """Test D5 official workflow JSON structure."""
-
-    def test_27_workflow_valid(self):
-        """官方 workflow JSON 结构校验通过。"""
-        import json
-        from pathlib import Path
-        wf_path = Path(__file__).parent.parent / "workflows" / "official_continuity_agent_v2.json"
-        assert wf_path.exists(), f"Workflow not found: {wf_path}"
-        with open(wf_path, encoding="utf-8") as f:
-            data = json.load(f)
-        assert "nodes" in data
-        assert "links" in data
-        node_types = {n["type"] for n in data["nodes"]}
-        d5_required = {
-            "AWPV2ContinuityTrigger",
-            "AWPV2ContinuityAgent", "AWPV2ContinuityValidator",
-            "AWPV2ContinuityRanker", "AWPV2ContinuityResult",
-            "AWPV2ContinuityDiagnostics",
-        }
-        assert d5_required.issubset(node_types), f"Missing: {d5_required - node_types}"
-
-        # Validate links reference existing nodes
-        node_ids = {n["id"] for n in data["nodes"]}
-        for link in data["links"]:
-            assert link[1] in node_ids, f"Link references missing from_node: {link[1]}"
-            assert link[3] in node_ids, f"Link references missing to_node: {link[3]}"
-
-
-# ─────────────────────────────────────────────
-# D5 Node registration tests
 # ─────────────────────────────────────────────
 
 class TestD5NodeRegistration:

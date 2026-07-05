@@ -70,6 +70,23 @@ class SqliteCardSessionBindingStore(CardSessionBindingStore):
         ).fetchall()
         return [CardSessionBinding.from_dict(json.loads(r["binding_json"])) for r in rows]
 
+    def list_by_card(self, logical_card_id: str) -> list[CardSessionBinding]:
+        conn = self._db.connect()
+        rows = conn.execute(
+            "SELECT binding_json FROM card_session_bindings "
+            "WHERE logical_card_id = ? ORDER BY created_at DESC",
+            (logical_card_id,),
+        ).fetchall()
+        return [CardSessionBinding.from_dict(json.loads(r["binding_json"])) for r in rows]
+
+    def delete(self, session_id: str) -> None:
+        conn = self._db.connect()
+        conn.execute(
+            "DELETE FROM card_session_bindings WHERE session_id = ?",
+            (session_id,),
+        )
+        conn.commit()
+
 
 class SqliteOpeningRecordStore(OpeningRecordStore):
 
@@ -113,6 +130,14 @@ class SqliteOpeningRecordStore(OpeningRecordStore):
         if not row:
             return None
         return OpeningRecord.from_dict(json.loads(row["record_json"]))
+
+    def delete_by_session(self, session_id: str) -> None:
+        conn = self._db.connect()
+        conn.execute(
+            "DELETE FROM opening_records WHERE session_id = ?",
+            (session_id,),
+        )
+        conn.commit()
 
 
 class SqliteWorldbookBindingStore(WorldbookBindingStore):
@@ -158,6 +183,14 @@ class SqliteWorldbookBindingStore(WorldbookBindingStore):
             return None
         return WorldbookBinding.from_dict(json.loads(row["binding_json"]))
 
+    def delete_by_session(self, session_id: str) -> None:
+        conn = self._db.connect()
+        conn.execute(
+            "DELETE FROM worldbook_bindings WHERE session_id = ?",
+            (session_id,),
+        )
+        conn.commit()
+
 
 class SqliteBootstrapReceiptStore(BootstrapReceiptStore):
 
@@ -201,3 +234,11 @@ class SqliteBootstrapReceiptStore(BootstrapReceiptStore):
         if not row:
             return None
         return CardSessionBootstrapReceipt.from_dict(json.loads(row["receipt_json"]))
+
+    def delete_by_session(self, session_id: str) -> None:
+        conn = self._db.connect()
+        conn.execute(
+            "DELETE FROM bootstrap_receipts WHERE session_id = ?",
+            (session_id,),
+        )
+        conn.commit()

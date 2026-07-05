@@ -178,34 +178,34 @@ class TurnEvolutionCurator:
         recent_lines = []
         for tr in request.recent_turns[:5]:
             idx = tr.get("turn_index", "?")
-            pi = str(tr.get("player_input", ""))[:200]
-            wo = str(tr.get("writer_output", ""))[:300]
+            pi = str(tr.get("player_input", ""))
+            wo = str(tr.get("writer_output", ""))
             recent_lines.append(f"[Turn {idx}] Player: {pi}")
             recent_lines.append(f"[Turn {idx}] Writer: {wo}")
 
         # Format active memory
         mem_lines = []
-        for mem in request.active_memory[:15]:
+        for mem in request.active_memory:
             kind = mem.get("kind", "?")
-            summary = str(mem.get("summary", ""))[:80]
+            summary = str(mem.get("summary", "") or mem.get("content", ""))
             mem_lines.append(f"- [{kind}] {summary}")
 
         # Format worldbook context
         wb_lines = []
-        for entry in request.resolved_worldbook_context[:5]:
-            title = str(entry.get("title", ""))[:60]
-            content = str(entry.get("content_excerpt", ""))[:150]
+        for entry in request.resolved_worldbook_context:
+            title = str(entry.get("title", "") or entry.get("entry_id", ""))
+            content = str(entry.get("content_excerpt", "") or entry.get("content", ""))
             wb_lines.append(f"- {title}: {content}")
 
         # Format agent suggestions
         sug_lines = []
-        for sug in request.agent_suggestions[:4]:
+        for sug in request.agent_suggestions:
             role = sug.get("role", "?")
-            summary = str(sug.get("summary", ""))[:120]
+            summary = str(sug.get("summary", "") or sug.get("content", ""))
             sug_lines.append(f"- [{role}] {summary}")
 
         brief = request.final_turn_brief
-        turn_goal = str(brief.get("turn_goal", ""))[:200]
+        turn_goal = str(brief.get("turn_goal", ""))
 
         prompt = (
             "你是一个角色扮演会话的状态策展器(Curator)。\n"
@@ -224,17 +224,17 @@ class TurnEvolutionCurator:
             "- active 记忆用于未来几轮立即影响角色反应；rag 记忆用于长期检索。\n\n"
             "=== 当前状态 ===\n"
             f"revision: {current_revision}\n"
-            f"variables: {json.dumps(variables, ensure_ascii=False)[:500]}\n"
-            f"event_flags: {json.dumps(event_flags, ensure_ascii=False)[:300]}\n"
-            f"scene: {json.dumps(scene, ensure_ascii=False)[:300]}\n\n"
+            f"variables: {json.dumps(variables, ensure_ascii=False)}\n"
+            f"event_flags: {json.dumps(event_flags, ensure_ascii=False)}\n"
+            f"scene: {json.dumps(scene, ensure_ascii=False)}\n\n"
             "=== 回合目标 ===\n"
             f"{turn_goal}\n\n"
             "=== 最近回合 ===\n"
             + ("\n".join(recent_lines) if recent_lines else "(无)") + "\n\n"
             "=== 玩家输入 ===\n"
-            f"{request.player_input[:500]}\n\n"
+            f"{request.player_input}\n\n"
             "=== 已接受 Writer 输出 ===\n"
-            f"{request.accepted_writer_output[:2000]}\n\n"
+            f"{request.accepted_writer_output}\n\n"
             "=== 活跃记忆 ===\n"
             + ("\n".join(mem_lines) if mem_lines else "(无)") + "\n\n"
             "=== 世界书上下文 ===\n"

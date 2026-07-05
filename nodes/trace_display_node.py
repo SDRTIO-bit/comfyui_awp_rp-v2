@@ -10,13 +10,21 @@ import json
 from typing import Any
 
 
+class AnyType(str):
+    def __ne__(self, _value: object) -> bool:
+        return False
+
+
+ANY_TYPE = AnyType("*")
+
+
 class AWPV2TraceDisplay:
 
     @classmethod
     def INPUT_TYPES(cls) -> dict[str, Any]:
         return {
             "required": {
-                "data": (["EXECUTION_TRACE", "DIAGNOSTICS", "STRING", "JSON"],),
+                "data": (ANY_TYPE,),
             },
             "optional": {
                 "label": ("STRING", {"default": "AWP Trace"}),

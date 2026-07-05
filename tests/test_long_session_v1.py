@@ -446,12 +446,14 @@ class TestPersistentNodeFullFlow:
                 ft = AWPV2PersistentFirstTurn()
                 ft.execute(session_id="s1", player_input="你好，我答应你明天再来。",
                            turn_id="t1", request_id="r1", workflow_run_id="w1",
-                           trace_id="tc1")
+                           trace_id="tc1", director_profile_id="fake-director",
+                           writer_profile_id="fake-writer")
                 ct = AWPV2PersistentContinuationTurn()
                 result2 = ct.execute(
                     session_id="s1", player_input="我们之前说过什么？",
                     turn_id="t2", request_id="r2", workflow_run_id="w2",
-                    trace_id="tc2",
+                    trace_id="tc2", director_profile_id="fake-director",
+                    writer_profile_id="fake-writer",
                 )
                 diag2 = result2[2]
                 assert diag2["outcome"] == "success"
@@ -477,7 +479,9 @@ class TestPersistentNodeFullFlow:
                 ft = AWPV2PersistentFirstTurn()
                 ft.execute(session_id="s1", player_input="你好",
                            turn_id="t1", request_id="r1",
-                           workflow_run_id="w1", trace_id="tc1")
+                           workflow_run_id="w1", trace_id="tc1",
+                           director_profile_id="fake-director",
+                           writer_profile_id="fake-writer")
                 # Simulate restart
                 clear_registry_cache()
                 f2 = RuntimeStoreFactory.from_env()
@@ -493,6 +497,8 @@ class TestPersistentNodeFullFlow:
                     session_id="s1", player_input="继续聊聊",
                     turn_id="t2", request_id="r2",
                     workflow_run_id="w2", trace_id="tc2",
+                    director_profile_id="fake-director",
+                    writer_profile_id="fake-writer",
                 )
                 diag = result[2]
                 assert diag["outcome"] == "success"
@@ -521,6 +527,8 @@ class TestPersistentNodeFullFlow:
                     session_id="s1", player_input="你好",
                     turn_id="t1", request_id="r1",
                     workflow_run_id="w1", trace_id="tc1",
+                    director_profile_id="fake-director",
+                    writer_profile_id="fake-writer",
                 )
                 fresh_receipt = result1[0]
                 assert fresh_receipt["idempotency_status"] == "fresh"
@@ -529,6 +537,8 @@ class TestPersistentNodeFullFlow:
                     session_id="s1", player_input="你好",
                     turn_id="t1", request_id="r1",
                     workflow_run_id="w1", trace_id="tc1",
+                    director_profile_id="fake-director",
+                    writer_profile_id="fake-writer",
                 )
                 replayed_receipt = result2[0]
                 assert replayed_receipt["idempotency_status"] == "replayed"
@@ -554,14 +564,18 @@ class TestPersistentNodeFullFlow:
                 ft = AWPV2PersistentFirstTurn()
                 ft.execute(session_id="s1", player_input="你好",
                            turn_id="t1", request_id="r1",
-                           workflow_run_id="w1", trace_id="tc1")
+                           workflow_run_id="w1", trace_id="tc1",
+                           director_profile_id="fake-director",
+                           writer_profile_id="fake-writer")
                 cs1 = factory.registry.card_state_store.load("c1", "s1")
                 # P1: revision stays 0 when no real state signals detected
                 assert cs1.revision == 0
                 # Replay
                 ft.execute(session_id="s1", player_input="你好",
                            turn_id="t1", request_id="r1",
-                           workflow_run_id="w1", trace_id="tc1")
+                           workflow_run_id="w1", trace_id="tc1",
+                           director_profile_id="fake-director",
+                           writer_profile_id="fake-writer")
                 cs2 = factory.registry.card_state_store.load("c1", "s1")
                 assert cs2.revision == 0  # P1: no fake increment, no double-increment
             finally:
@@ -584,11 +598,15 @@ class TestPersistentNodeFullFlow:
                 ft = AWPV2PersistentFirstTurn()
                 ft.execute(session_id="s1", player_input="你好",
                            turn_id="t1", request_id="r1",
-                           workflow_run_id="w1", trace_id="tc1")
+                           workflow_run_id="w1", trace_id="tc1",
+                           director_profile_id="fake-director",
+                           writer_profile_id="fake-writer")
                 count1 = len(factory.registry.turn_record_store.get_recent("c1", "s1", limit=100))
                 ft.execute(session_id="s1", player_input="你好",
                            turn_id="t1", request_id="r1",
-                           workflow_run_id="w1", trace_id="tc1")
+                           workflow_run_id="w1", trace_id="tc1",
+                           director_profile_id="fake-director",
+                           writer_profile_id="fake-writer")
                 count2 = len(factory.registry.turn_record_store.get_recent("c1", "s1", limit=100))
                 assert count2 == count1
             finally:

@@ -10,7 +10,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/awp/api": "http://localhost:8188",
+      "/awp/api": {
+        target: "http://localhost:8188",
+        changeOrigin: true,
+      },
     },
   },
 });

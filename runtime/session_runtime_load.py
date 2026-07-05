@@ -164,9 +164,33 @@ class SessionRuntimeLoad:
             session_id=session_id,
             player_input=player_input,
             worldbook_entries=worldbook_entries,
+            card_profile_context=self._load_card_profile_context(binding),
         )
         bundle.round_snapshot = snapshot
         bundle.l1_turn_count = len(snapshot.recent_turn_records)
         bundle.l2_active_memory_count = len(snapshot.active_memories)
         bundle.l3_rag_recall_count = len(snapshot.rag_recall)
         return bundle
+
+    def _load_card_profile_context(self, binding: CardSessionBinding) -> dict[str, Any]:
+        try:
+            definition = self._card_definitions.load(
+                binding.logical_card_id,
+                binding.card_version,
+            )
+            if definition is None:
+                definition = self._card_definitions.get_latest(binding.logical_card_id)
+        except Exception:
+            return {}
+        if definition is None:
+            return {}
+        profile = dict(getattr(definition, "profile", {}) or {})
+        if not profile.get("name"):
+            profile["name"] = (
+                getattr(definition, "display_name", "")
+                or getattr(definition, "name", "")
+                or binding.logical_card_id
+            )
+        profile["logical_card_id"] = binding.logical_card_id
+        profile["card_version"] = getattr(definition, "card_version", binding.card_version)
+        return profile

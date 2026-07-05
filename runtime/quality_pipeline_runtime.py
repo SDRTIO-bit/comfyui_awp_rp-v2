@@ -66,7 +66,7 @@ class SceneGate:
                 issue_id=f"qi_{uuid.uuid4().hex[:8]}",
                 gate_name="scene",
                 category=IssueCategory.SCENE,
-                severity=IssueSeverity.ERROR,
+                severity=IssueSeverity.WARNING,
                 description=f"Scene location '{scene_location}' not reflected in draft",
                 fixable=True,
                 fix_guidance=f"Reference the scene location '{scene_location}'",

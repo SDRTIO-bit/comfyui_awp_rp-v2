@@ -27,7 +27,17 @@ class RealDirectorV2Adapter:
     def __init__(self, deepseek: DeepSeekAdapter, model: str = ""):
         self._llm = deepseek
         self._model = model
-        self._extra_body = {"thinking": {"type": "enabled"}}
+        # Director is a structured-planning role (filling schema fields, not
+        # creative prose), so it uses function calling instead of thinking.
+        #
+        # DeepSeek v4 models default to thinking mode server-side, and thinking
+        # mode rejects tool_choice ("Thinking mode does not support this
+        # tool_choice" → 400 → SDK retries → EMPTY_RESPONSE). So we must
+        # explicitly DISABLE thinking to unlock function calling. With thinking
+        # disabled, the SDK's tool_calls path returns valid structured JSON,
+        # avoiding the old raw-text json.loads failures (markdown fences /
+        # truncation / empty content).
+        self._extra_body = {"thinking": {"type": "disabled"}}
 
     def generate_plan(
         self,
@@ -188,24 +198,29 @@ class RealDirectorV2Adapter:
 
         tool_allowlist = [
             "accepted_turn_lookup", "active_memory_lookup", "rag_memory_lookup",
-            "worldbook_lookup", "scene_context_lookup", "relationship_context_lookup",
-            "timeline_lookup", "entity_alias_lookup",
+            "memory_rag_lookup", "worldbook_lookup", "scene_context_lookup",
+            "relationship_context_lookup", "timeline_lookup", "entity_alias_lookup",
         ]
 
-        # D1: History Recall — useful when there are prior turns to check
+        # D1: History Recall — uses RAG + recent turns, not worldbook
         if recent_turn_count >= 2:
             tasks.append(DelegationTask(
                 task_id=f"d1_{uuid.uuid4().hex[:8]}",
                 role="history_recall",
                 priority=0.7,
-                purpose="Check recent history for consistency and unresolved threads",
+                purpose=(
+                    f"Check recent history for this turn. "
+                    f"Director's goal: {plan.turn_goal}. "
+                    f"Risks to verify: {'; '.join(plan.risk_flags[:3]) if plan.risk_flags else 'none'}. "
+                    f"Look for contradictions with established facts, unresolved threads, and callbacks."
+                ),
                 max_tokens=500,
                 timeout_ms=20000,
                 failure_policy="skip",
                 tool_allowlist=tool_allowlist,
                 input_field_allowlist=[
                     "player_input", "recent_turn_records", "active_memories",
-                    "rag_recall", "active_worldbook_entries", "card_state",
+                    "rag_recall", "card_state",
                 ],
                 expected_suggestion_kinds=["identity_clarification", "historical_conflict"],
             ))
@@ -216,7 +231,13 @@ class RealDirectorV2Adapter:
                 task_id=f"d2_{uuid.uuid4().hex[:8]}",
                 role="opportunity",
                 priority=0.6,
-                purpose="Find dramatic opportunities grounded in established facts",
+                purpose=(
+                    f"Find dramatic opportunities for this turn. "
+                    f"Director's goal: {plan.turn_goal}. "
+                    f"Scene focus: {plan.scene_focus}. "
+                    f"Known opportunities: {'; '.join(plan.narrative_opportunities[:3])}. "
+                    f"Ground your analysis in established facts from recent turns and worldbook."
+                ),
                 max_tokens=500,
                 timeout_ms=20000,
                 failure_policy="skip",
@@ -234,7 +255,12 @@ class RealDirectorV2Adapter:
                 task_id=f"d3_{uuid.uuid4().hex[:8]}",
                 role="world_life",
                 priority=0.5,
-                purpose="Add world presence, environment, and NPC-side texture",
+                purpose=(
+                    f"Add world texture and sensory details for this turn. "
+                    f"Scene focus: {plan.scene_focus}. "
+                    f"Look for environmental details, NPC background actions, and sensory elements "
+                    f"that match the current location and time."
+                ),
                 max_tokens=500,
                 timeout_ms=20000,
                 failure_policy="skip",
@@ -246,20 +272,25 @@ class RealDirectorV2Adapter:
                 expected_suggestion_kinds=["world_detail"],
             ))
 
-        # D4: Emotion/Relationship — useful when relationship context matters
+        # D4: Emotion/Relationship — uses memories + recent turns, not worldbook
         if active_mem_count > 0 or recent_turn_count >= 1 or plan.relationship_tensions:
             tasks.append(DelegationTask(
                 task_id=f"d4_{uuid.uuid4().hex[:8]}",
                 role="emotion_relationship",
                 priority=0.6,
-                purpose="Analyze current emotional state and relationship dynamics",
+                purpose=(
+                    f"Analyze emotional state and relationship dynamics. "
+                    f"Director's goal: {plan.turn_goal}. "
+                    f"Relationship tensions: {'; '.join(plan.relationship_tensions[:3]) if plan.relationship_tensions else 'none'}. "
+                    f"Look for what characters are feeling but not saying."
+                ),
                 max_tokens=500,
                 timeout_ms=20000,
                 failure_policy="skip",
                 tool_allowlist=tool_allowlist,
                 input_field_allowlist=[
                     "player_input", "recent_turn_records", "active_memories",
-                    "rag_recall", "active_worldbook_entries", "card_state",
+                    "rag_recall", "card_state",
                 ],
                 expected_suggestion_kinds=["relationship_shift"],
             ))
@@ -270,7 +301,12 @@ class RealDirectorV2Adapter:
                 task_id=f"d5_{uuid.uuid4().hex[:8]}",
                 role="continuity",
                 priority=0.8,
-                purpose="Verify factual continuity with established world state",
+                purpose=(
+                    f"Verify factual continuity for this turn. "
+                    f"Risks: {'; '.join(plan.risk_flags[:3]) if plan.risk_flags else 'none'}. "
+                    f"Must preserve: {'; '.join(plan.must_preserve_facts[:3]) if plan.must_preserve_facts else 'none'}. "
+                    f"Check names, relationships, locations, and timeline."
+                ),
                 max_tokens=500,
                 timeout_ms=20000,
                 failure_policy="skip",
@@ -301,28 +337,30 @@ class RealDirectorV2Adapter:
         ), receipt
 
     def _build_plan_prompt(self, snapshot: RoundSnapshot) -> str:
-        """Build prompt for Director plan generation.
+        """Build user prompt for Director plan generation.
 
-        Includes truncated worldbook/recent-turn/memory content
-        (not full card text) to improve planning quality.
+        Separates stable worldbook context from volatile turn data for
+        provider prefix caching. Role/workflow/format instructions are in
+        the system prompt (SYSTEM_PROMPT_DIRECTOR), not repeated here.
         """
-        player_input = snapshot.player_input[:500]
+        player_input = snapshot.player_input
         scene_location = ""
         if hasattr(snapshot.card_state, 'scene_state'):
             scene_location = getattr(snapshot.card_state.scene_state, 'location', '')
 
         recent_turn_count = len(snapshot.recent_turn_records)
 
+        # ── Worldbook: split stable (constant) vs dynamic ───────────────
         stable_worldbook_lines = []
         dynamic_worldbook_lines = []
-        for entry in (snapshot.active_worldbook_entries or [])[:5]:
+        for entry in (snapshot.active_worldbook_entries or []):
             if not isinstance(entry, dict):
                 continue
             title = str(entry.get("title", "") or entry.get("entry_id", "Untitled"))
-            content = str(entry.get("content_excerpt", "") or "")[:160]
+            content = str(entry.get("content_excerpt", "") or entry.get("content", "") or "")
             activation_reason = str(entry.get("activation_reason", "") or "")
             matched = entry.get("matched_keywords", [])
-            matched_text = ", ".join(str(item) for item in matched[:5]) if isinstance(matched, list) else ""
+            matched_text = ", ".join(str(item) for item in matched) if isinstance(matched, list) else ""
             line = f"- {title}: {content}"
             if activation_reason:
                 line += f" (reason: {activation_reason})"
@@ -336,54 +374,96 @@ class RealDirectorV2Adapter:
             if is_constant:
                 stable_worldbook_lines.append(line)
             else:
-                dynamic_worldbook_lines.append(line[:240])
+                dynamic_worldbook_lines.append(line)
         stable_worldbook_block = "\n".join(stable_worldbook_lines) if stable_worldbook_lines else "(none)"
         dynamic_worldbook_block = "\n".join(dynamic_worldbook_lines) if dynamic_worldbook_lines else "(none)"
+        profile_block = self._format_card_profile(
+            getattr(snapshot, "card_profile_context", {}) or {}
+        )
 
         # ── Recent turns (last 2-3, truncated) ──────────────────────────
         turn_lines = []
-        for turn in (snapshot.recent_turn_records or [])[-3:]:
+        recent_limit = int(getattr(snapshot, "max_turn_history", 5) or 5)
+        for turn in self._chronological_turns((snapshot.recent_turn_records or [])[:recent_limit]):
             idx = getattr(turn, 'turn_index', '?')
-            p = str(getattr(turn, 'player_input', '') or '')[:200]
-            w = str(getattr(turn, 'writer_output', '') or '')[:200]
+            p = str(getattr(turn, 'player_input', '') or '')
+            w = str(getattr(turn, 'writer_output', '') or '')
             turn_lines.append(f"Turn {idx} Player: {p}")
             turn_lines.append(f"Turn {idx} Writer: {w}")
         recent_turns_block = "\n".join(turn_lines) if turn_lines else "(none)"
+        older_turns_summary = str(getattr(snapshot, "older_turns_summary", "") or "").strip()
 
         # ── Active memories (top 5, truncated) ──────────────────────────
         mem_lines = []
-        for entry in (snapshot.active_memories or [])[:5]:
+        for entry in (snapshot.active_memories or []):
             if isinstance(entry, dict):
-                summary = str(entry.get("summary", "") or entry.get("content", "") or "")[:120]
+                summary = str(entry.get("summary", "") or entry.get("content", "") or "")
                 if summary:
                     mem_lines.append(f"- {summary}")
         mem_block = "\n".join(mem_lines) if mem_lines else "(none)"
 
-        return (
-            f"You are a narrative director for a roleplay session.\n"
-            f"Keep fixed instructions above volatile turn context so provider prefix caching can be reused.\n\n"
-            f"=== STABLE DIRECTOR CONTRACT ===\n"
-            f"You are the first planning agent and coordinator, not the Writer.\n"
-            f"Plan the next turn without producing player-visible prose.\n"
-            f"First identify hard evidence, then risks, then delegation/tool needs, then writer intent.\n"
-            f"Respect established facts, character continuity, worldbook constraints, and player agency.\n"
-            f"Use tools only through the runtime ToolPlan; do not invent tool results.\n"
-            f"Keep private reasoning concise. Return compact JSON only; keep each list to 5 items or fewer.\n"
-            f"Respond with JSON containing: turn_goal, scene_focus, must_preserve_facts, "
-            f"must_not_do, narrative_opportunities, writer_constraints, active_character_refs, "
-            f"relationship_tensions, unresolved_threads, pacing_guidance, risk_flags.\n\n"
-            f"Stable worldbook context:\n"
-            f"{stable_worldbook_block}\n\n"
-            f"=== TURN PACKET (volatile; changes every turn) ===\n"
-            f"Current scene: {scene_location}\n"
-            f"Player input: {player_input}\n"
-            f"Recent turns count: {recent_turn_count}\n"
-            f"Active worldbook entries: {len(snapshot.active_worldbook_entries)}\n"
-            f"Active memories: {len(snapshot.active_memories)}\n\n"
-            f"=== Dynamic Worldbook Context ===\n"
-            f"{dynamic_worldbook_block}\n\n"
-            f"=== Recent Turns ===\n"
-            f"{recent_turns_block}\n\n"
-            f"=== Active Memories ===\n"
-            f"{mem_block}"
+        return f"""You are a narrative director for a roleplay session.
+Keep the fixed instructions above separate from the volatile turn context below so provider prefix caching can be reused.
+
+=== STABLE DIRECTOR CONTRACT ===
+
+This block contains stable worldbuilding context. It changes infrequently.
+The instructions above (role, workflow, output format) remain in effect.
+Character profile:
+{profile_block or "(none)"}
+
+Stable worldbook context:
+{stable_worldbook_block}
+
+=== TURN PACKET (volatile; changes every turn) ===
+
+Current scene: {scene_location}
+Player input: {player_input}
+Recent turns count: {recent_turn_count}
+Active worldbook entries count: {len(snapshot.active_worldbook_entries)}
+Active memories count: {len(snapshot.active_memories)}
+
+=== Dynamic Worldbook Context ===
+
+{dynamic_worldbook_block}
+
+=== Recent Turns ===
+
+{recent_turns_block}
+
+=== Earlier Turns Summary ===
+
+{older_turns_summary or "(none)"}
+
+=== Active Memories ===
+
+{mem_block}"""
+
+    def _format_card_profile(self, profile: dict[str, Any]) -> str:
+        if not isinstance(profile, dict) or not profile:
+            return ""
+        fields = (
+            ("name", "Name"),
+            ("description", "Description"),
+            ("personality", "Personality"),
+            ("scenario", "Scenario"),
+            ("mes_example", "Example messages"),
+            ("creator_notes", "Creator notes"),
         )
+        lines = []
+        for key, label in fields:
+            value = str(profile.get(key, "") or "").strip()
+            if value:
+                lines.append(f"{label}:\n{value}")
+        return "\n\n".join(lines)
+
+    def _chronological_turns(self, turns: list[Any]) -> list[Any]:
+        def key(turn: Any) -> tuple[int, str]:
+            raw_index = getattr(turn, "turn_index", 0)
+            try:
+                index = int(raw_index)
+            except (TypeError, ValueError):
+                index = 0
+            return (index, str(getattr(turn, "turn_id", "") or ""))
+
+        return sorted(turns, key=key)

@@ -28,7 +28,7 @@ from awp_rp_runtime_v2.contracts.history_recall_suggestion import HistoryRecallS
 from awp_rp_runtime_v2.contracts.history_recall_diagnostics import HistoryRecallDiagnostics
 
 # D1 runtime
-from awp_rp_runtime_v2.runtime.history_recall_trigger_policy import HistoryRecallTriggerPolicy
+from awp_rp_runtime_v2.runtime.history_recall_trigger_policy import HistoryRecallTriggerPolicy, TriggerResult
 from awp_rp_runtime_v2.runtime.history_recall_runtime import HistoryRecallRuntime
 from awp_rp_runtime_v2.runtime.history_recall_query_planner import HistoryRecallQueryPlanner
 from awp_rp_runtime_v2.runtime.recall_evidence_ranker import RecallEvidenceRanker
@@ -833,3 +833,19 @@ class TestD1E2EConflictDegradation:
         # 8. Writer should not reference conflicted history
         # This is enforced by FinalTurnBrief not including rejected findings
         assert result.status in (HistoryRecallStatus.SUCCESS, HistoryRecallStatus.DEGRADED)
+
+
+class TestHistoryRecallRuntimeWorldbookEvidence:
+    def test_worldbook_content_excerpt_is_used_as_evidence(self):
+        snapshot = _make_snapshot(
+            active_worldbook=[{
+                "entry_id": "wb_gate",
+                "title": "Gate Rule",
+                "content_excerpt": "CRITICAL_WORLDBOOK_EXCERPT",
+            }],
+        )
+        trigger = TriggerResult(should_trigger=True)
+
+        evidence = HistoryRecallRuntime()._collect_evidence_from_snapshot(snapshot, trigger)
+
+        assert any(ev.excerpt == "CRITICAL_WORLDBOOK_EXCERPT" for ev in evidence)

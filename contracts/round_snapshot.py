@@ -41,8 +41,12 @@ class RoundSnapshot:
     # Player input
     player_input: str = ""
 
+    # Immutable character profile for roleplay grounding
+    card_profile_context: dict[str, Any] = field(default_factory=dict)
+
     # Recent turn records (last N, most recent first)
     recent_turn_records: list[TurnRecord] = field(default_factory=list)
+    older_turns_summary: str = ""
 
     # Conditional worldbook entries activated for this round
     active_worldbook_entries: list[dict[str, Any]] = field(default_factory=list)
@@ -75,7 +79,9 @@ class RoundSnapshot:
             "base_card_state_revision": self.base_card_state_revision,
             "card_state": self.card_state.to_dict(),
             "player_input": self.player_input,
+            "card_profile_context": self.card_profile_context,
             "recent_turn_records": [tr.to_dict() for tr in self.recent_turn_records],
+            "older_turns_summary": self.older_turns_summary,
             "active_worldbook_entries": self.active_worldbook_entries,
             "active_memories": self.active_memories,
             "rag_recall": self.rag_recall,
@@ -98,9 +104,11 @@ class RoundSnapshot:
             base_card_state_revision=data.get("base_card_state_revision", 0),
             card_state=CardState.from_dict(data.get("card_state", {})),
             player_input=data.get("player_input", ""),
+            card_profile_context=data.get("card_profile_context", {}),
             recent_turn_records=[
                 TurnRecord.from_dict(tr) for tr in data.get("recent_turn_records", [])
             ],
+            older_turns_summary=data.get("older_turns_summary", ""),
             active_worldbook_entries=data.get("active_worldbook_entries", []),
             active_memories=data.get("active_memories", []),
             rag_recall=data.get("rag_recall", []),

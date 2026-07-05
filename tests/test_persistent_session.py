@@ -670,6 +670,44 @@ class TestSessionRuntimeLoadIntegration:
             assert len(bundle.round_snapshot.recent_turn_records) == 3
             _close_db(db)
 
+    def test_load_includes_version_locked_card_profile_in_snapshot(self):
+        """SessionRuntimeLoad must freeze character profile into RoundSnapshot."""
+        with tempfile.TemporaryDirectory() as tmp:
+            db = _make_db(tmp)
+            registry = SessionRuntimeStoreRegistry(db)
+            _seed_session(registry)
+            registry.card_definition_store.save(CardDefinition(
+                logical_card_id="card_001",
+                card_version=1,
+                source_id="src_card_001_1",
+                source_hash="abc123",
+                name="Seed Card",
+                display_name="Seed Card",
+                status=CardDefinitionStatus.READY,
+                profile={
+                    "schema_id": "awp.rp.card-profile.v1",
+                    "schema_version": 1,
+                    "name": "PROFILE_NAME_MARKER",
+                    "description": "PROFILE_DESCRIPTION_MARKER",
+                    "personality": "PROFILE_PERSONALITY_MARKER",
+                },
+                greetings=[],
+                worldbook_catalog=[],
+                worldbook_chunks=[],
+                created_at=_now(),
+                updated_at=_now(),
+            ))
+
+            bundle = SessionRuntimeLoad(registry).load("sess_001", "New player input")
+
+            assert bundle.is_valid
+            assert bundle.round_snapshot is not None
+            assert bundle.round_snapshot.card_profile_context["name"] == "PROFILE_NAME_MARKER"
+            assert bundle.round_snapshot.card_profile_context["description"] == "PROFILE_DESCRIPTION_MARKER"
+            assert bundle.round_snapshot.card_profile_context["personality"] == "PROFILE_PERSONALITY_MARKER"
+            assert bundle.round_snapshot.card_profile_context["card_version"] == 1
+            _close_db(db)
+
     def test_load_fails_gracefully_missing_session(self):
         """SessionRuntimeLoad returns errors for missing session."""
         with tempfile.TemporaryDirectory() as tmp:
@@ -736,6 +774,34 @@ class TestRuntimeStoreFactory:
                 f2 = RuntimeStoreFactory.for_test("ns_B", store_root=tmp)
                 assert f1.registry is not f2.registry
                 assert f1.db_path != f2.db_path
+            finally:
+                clear_registry_cache()
+
+    def test_factory_same_database_uses_thread_local_registry(self):
+        """Each thread gets its own registry so SQLite connections are not shared."""
+        import threading
+
+        from ..runtime.runtime_store_factory import RuntimeStoreFactory, clear_registry_cache
+        with tempfile.TemporaryDirectory() as tmp:
+            clear_registry_cache()
+            try:
+                main_factory = RuntimeStoreFactory.for_test("ns_thread", store_root=tmp)
+                main_registry = main_factory.registry
+                worker_result = {}
+
+                def load_in_worker():
+                    worker_factory = RuntimeStoreFactory.for_test("ns_thread", store_root=tmp)
+                    worker_result["registry"] = worker_factory.registry
+                    worker_result["db_path"] = worker_factory.db_path
+
+                thread = threading.Thread(target=load_in_worker)
+                thread.start()
+                thread.join()
+
+                same_thread_factory = RuntimeStoreFactory.for_test("ns_thread", store_root=tmp)
+                assert same_thread_factory.registry is main_registry
+                assert worker_result["db_path"] == main_factory.db_path
+                assert worker_result["registry"] is not main_registry
             finally:
                 clear_registry_cache()
 
@@ -1117,6 +1183,8 @@ class TestIdempotentReplay:
                     request_id="req_001",
                     workflow_run_id="wfr_001",
                     trace_id="trc_001",
+                    director_profile_id="fake-director",
+                    writer_profile_id="fake-writer",
                 )
                 receipt1 = result1[0]
                 assert receipt1["idempotency_status"] == "fresh"
@@ -1130,6 +1198,8 @@ class TestIdempotentReplay:
                     request_id="req_001",
                     workflow_run_id="wfr_001",
                     trace_id="trc_001",
+                    director_profile_id="fake-director",
+                    writer_profile_id="fake-writer",
                 )
                 receipt2 = result2[0]
                 assert receipt2["idempotency_status"] == "replayed"
@@ -1173,6 +1243,8 @@ class TestIdempotentReplay:
                     request_id="req_001",
                     workflow_run_id="wfr_001",
                     trace_id="trc_001",
+                    director_profile_id="fake-director",
+                    writer_profile_id="fake-writer",
                 )
 
                 # Turn 2 (continuation)
@@ -1185,6 +1257,8 @@ class TestIdempotentReplay:
                     request_id="req_002",
                     workflow_run_id="wfr_002",
                     trace_id="trc_002",
+                    director_profile_id="fake-director",
+                    writer_profile_id="fake-writer",
                 )
                 assert result2[0]["idempotency_status"] == "fresh"
 
@@ -1196,6 +1270,8 @@ class TestIdempotentReplay:
                     request_id="req_002",
                     workflow_run_id="wfr_002",
                     trace_id="trc_002",
+                    director_profile_id="fake-director",
+                    writer_profile_id="fake-writer",
                 )
                 assert result2_replay[0]["idempotency_status"] == "replayed"
 
@@ -1324,3 +1400,36 @@ class TestModelProfileRegistry:
                 os.environ.pop("AWP_TEST_STORE_ROOT", None)
                 os.environ.pop("AWP_TEST_RUNTIME_NAMESPACE", None)
                 clear_registry_cache()
+
+    def test_31_production_nodes_default_to_real_profiles(self):
+        """Production-facing node defaults must not silently use fake adapters."""
+        import inspect
+
+        from ..nodes.continue_turn_execution_node import AWPV2ContinueTurn
+        from ..nodes.persistent_continuation_turn_node import AWPV2PersistentContinuationTurn
+        from ..nodes.persistent_first_turn_node import AWPV2PersistentFirstTurn
+        from ..nodes.writer_v2_node import AWPV2WriterGenerate
+
+        expected_director = "deepseek-v4-flash-director"
+        expected_writer = "deepseek-v4-pro-writer"
+
+        for node_cls in (
+            AWPV2PersistentFirstTurn,
+            AWPV2PersistentContinuationTurn,
+            AWPV2ContinueTurn,
+        ):
+            optional = node_cls.INPUT_TYPES()["optional"]
+            assert optional["director_profile_id"][1]["default"] == expected_director
+            assert optional["writer_profile_id"][1]["default"] == expected_writer
+
+            execute_signature = inspect.signature(node_cls.execute)
+            assert execute_signature.parameters["director_profile_id"].default == expected_director
+            assert execute_signature.parameters["writer_profile_id"].default == expected_writer
+
+            changed_signature = inspect.signature(node_cls.IS_CHANGED)
+            assert changed_signature.parameters["director_profile_id"].default == expected_director
+            assert changed_signature.parameters["writer_profile_id"].default == expected_writer
+
+        writer_optional = AWPV2WriterGenerate.INPUT_TYPES()["optional"]
+        assert writer_optional["profile_id"][1]["default"] == expected_writer
+        assert inspect.signature(AWPV2WriterGenerate.execute).parameters["profile_id"].default == expected_writer

@@ -18,8 +18,13 @@ from ..storage.sqlite.database import Database
 from .session_runtime_registry import SessionRuntimeStoreRegistry
 
 
-# Module-level singleton cache keyed by (profile, namespace, db_path)
-_registry_cache: dict[str, SessionRuntimeStoreRegistry] = {}
+# Module-level singleton cache keyed by (thread_id, db_path).
+#
+# sqlite3 connections are thread-affine by default. The management API can run
+# dispatcher work in a background thread while UI list/read endpoints stay on
+# the aiohttp event loop thread, so each thread needs its own connection-backed
+# registry for the same database path.
+_registry_cache: dict[tuple[int, str], SessionRuntimeStoreRegistry] = {}
 _cache_lock = threading.Lock()
 
 
@@ -45,12 +50,13 @@ def _resolve_db_path(profile: str, namespace: str, store_root: str = "") -> str:
 
 def _get_or_create_registry(db_path: str) -> SessionRuntimeStoreRegistry:
     """Get or create a registry for the given database path. Thread-safe."""
+    cache_key = (threading.get_ident(), db_path)
     with _cache_lock:
-        if db_path not in _registry_cache:
+        if cache_key not in _registry_cache:
             db = Database(db_path)
             db.initialize()
-            _registry_cache[db_path] = SessionRuntimeStoreRegistry(db)
-        return _registry_cache[db_path]
+            _registry_cache[cache_key] = SessionRuntimeStoreRegistry(db)
+        return _registry_cache[cache_key]
 
 
 def clear_registry_cache() -> None:

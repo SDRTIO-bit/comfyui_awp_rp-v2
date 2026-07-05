@@ -23,8 +23,11 @@ class WriterInputBundleV2Builder:
         snapshot: RoundSnapshot,
         final_brief: FinalTurnBrief,
         merge_result: SuggestionMergeResult | None = None,
+        card_profile_context: dict | None = None,
         opening_context: dict | None = None,
         worldbook_context: list[dict] | None = None,
+        score: str = "",
+        older_turns_summary: str = "",
     ) -> WriterInputBundle:
         """Build a WriterInputBundle.
 
@@ -92,6 +95,11 @@ class WriterInputBundleV2Builder:
             },
             "active_stage_ids": list(snapshot.card_state.active_stage_ids),
         }
+        variable_snapshot = self._build_variable_snapshot(snapshot)
+        if not older_turns_summary:
+            older_turns_summary = getattr(snapshot, "older_turns_summary", "")
+        if card_profile_context is None:
+            card_profile_context = getattr(snapshot, "card_profile_context", {})
 
         return WriterInputBundle(
             bundle_id=f"wib_{uuid.uuid4().hex[:12]}",
@@ -109,6 +117,7 @@ class WriterInputBundleV2Builder:
             accepted_guidance=accepted_guidance,
             writer_constraints=writer_constraints,
             player_input=snapshot.player_input,
+            card_profile_context=dict(card_profile_context or {}),
             opening_context=dict(opening_context or {}),
             worldbook_context=list(
                 worldbook_context if worldbook_context is not None
@@ -118,6 +127,9 @@ class WriterInputBundleV2Builder:
             card_state_context=card_state_context,
             active_memory_context=list(snapshot.active_memories),
             rag_memory_context=list(snapshot.rag_recall),
+            score=score,
+            variable_snapshot=variable_snapshot,
+            older_turns_summary=older_turns_summary,
             style_contract={
                 "style": "narrative",
                 "language": "zh",
@@ -134,3 +146,26 @@ class WriterInputBundleV2Builder:
             memory_proposal_hints=merge_result.memory_proposal_hints if merge_result else [],
             created_at=now,
         )
+
+    def _build_variable_snapshot(self, snapshot: RoundSnapshot) -> dict:
+        """Build volatile state context for Writer prompt assembly."""
+        return {
+            "location": snapshot.card_state.scene_state.location,
+            "time_of_day": snapshot.card_state.scene_state.time_of_day,
+            "weather": snapshot.card_state.scene_state.weather,
+            "active_npcs": list(snapshot.card_state.scene_state.active_npcs),
+            "variables": {
+                name: {
+                    "value": entry.value,
+                    "last_updated_turn": entry.last_updated_turn,
+                }
+                for name, entry in snapshot.card_state.variables.items()
+            },
+            "event_flags": {
+                name: {
+                    "fired": entry.fired,
+                    "fired_at_turn": entry.fired_at_turn,
+                }
+                for name, entry in snapshot.card_state.event_flags.items()
+            },
+        }

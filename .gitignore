@@ -13,9 +13,14 @@ build/
 *.sqlite3
 *.db-journal
 *.sqlite-journal
+*.db-shm
+*.db-wal
 
 # Temporary files
 *.tmp
+
+# Generated output
+qingmei_out/
 
 # Test / coverage / type-checker caches
 .pytest_cache/

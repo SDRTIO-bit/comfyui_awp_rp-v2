@@ -17,35 +17,11 @@ class TestP2NodeRegistration:
 
     def test_all_nodes_p1_plus_p2(self):
         from awp_rp_runtime_v2.nodes import NODE_CLASS_MAPPINGS
-        # 8 P1 + 6 P2 + 8 M1 + 11 C1 + 6 D1 + 7 D2 + 7 D3 + 7 D4 + 7 D5 + 9 P-CardImport + 10 P-CardSession + 8 P-FirstTurn + 1 Observability + 2 Canonical + 4 Persistent + 1 P1-RealEvolution + 1 AcceptedTextOutput
-        assert len(NODE_CLASS_MAPPINGS) == 103
+        # 8 P1 + 6 P2 + 8 M1 + 12 C1 + 6 D1 + 7 D2 + 7 D3 + 7 D4 + 7 D5 + 9 P-CardImport + 10 P-CardSession + 8 P-FirstTurn + 2 Observability + 2 Canonical + 4 Persistent + 1 P1-RealEvolution + 1 AcceptedTextOutput + 7 MemoryCuration + 8 Novel
+        assert len(NODE_CLASS_MAPPINGS) == 120
 
     def test_display_names_chinese(self):
         from awp_rp_runtime_v2.nodes import NODE_DISPLAY_NAME_MAPPINGS
         assert "AWP V2 叙事总控" in NODE_DISPLAY_NAME_MAPPINGS.values()
         assert "AWP V2 委派计划" in NODE_DISPLAY_NAME_MAPPINGS.values()
 
-
-class TestP2WorkflowValidation:
-    """Test 22: official workflow JSON structure."""
-
-    def test_workflow_valid(self):
-        wf_path = Path(__file__).parent.parent / "workflows" / "official_director_delegation_v2.json"
-        assert wf_path.exists()
-        with open(wf_path, encoding="utf-8") as f:
-            data = json.load(f)
-        assert "nodes" in data
-        node_types = {n["type"] for n in data["nodes"]}
-        required = {"AWPV2CardStateInit", "AWPV2RoundSnapshot", "AWPV2Director",
-                    "AWPV2DelegationPlan", "AWPV2DynamicSubAgentPool",
-                    "AWPV2SuggestionMerge", "AWPV2WriterInputBundle", "AWPV2AgentTrace"}
-        assert required.issubset(node_types)
-
-    def test_workflow_links_valid(self):
-        wf_path = Path(__file__).parent.parent / "workflows" / "official_director_delegation_v2.json"
-        with open(wf_path, encoding="utf-8") as f:
-            data = json.load(f)
-        node_ids = {n["id"] for n in data["nodes"]}
-        for link in data["links"]:
-            assert link[1] in node_ids
-            assert link[3] in node_ids

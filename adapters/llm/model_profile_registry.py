@@ -129,6 +129,94 @@ _register(ModelProfile(
     token_hard_limit=0,
 ))
 
+# OpenCode Zen provider — unified OpenAI-compatible gateway for all upstream models
+# (Qwen/GLM/Kimi/MiMo/MiniMax/DeepSeek). Set OPENCODE_API_KEY env to use these.
+# Base URL: https://opencode.ai/zen/go/v1  (OpenAI SDK appends /chat/completions)
+# Recommend qwen3.7-max or glm-5.2 for creative Chinese writing (less "DeepSeek 八股").
+_OPC_BASE = "https://opencode.ai/zen/go/v1"
+_OPC_ENV = "OPENCODE_API_KEY"
+_OPC_MAX_OUT = 4000
+_OPC_TIMEOUT = 120
+_OPC_RETRY = 2
+_OPC_BUDGET = 50_000
+
+# WARN: qwen3.7-plus 价格分段 — ≤256K tokens: $0.40/$1.60 in/out;
+# >256K tokens: $1.20/$4.80 (3x spike).
+# token_hard_limit 目前是声明字段,运行时未强制截断。长会话累积超 256K
+# 时单价飙升。需要后续在 prompt assembler 层加截断逻辑,或限制 max_turn_history。
+# 短会话(<10 回合)安全;长会话建议用 qwen-max-writer 或定期重置会话。
+_register(ModelProfile(
+    profile_id="opencode-qwen-plus-writer",
+    provider="openai",
+    model="qwen3.7-plus",
+    base_url=_OPC_BASE,
+    timeout_seconds=_OPC_TIMEOUT,
+    default_max_tokens=_OPC_MAX_OUT,
+    max_retries=_OPC_RETRY,
+    api_key_env=_OPC_ENV,
+    token_hard_limit=_OPC_BUDGET,  # 声明值,运行时未强制;见上方 WARN
+))
+
+_register(ModelProfile(
+    profile_id="opencode-qwen-max-writer",
+    provider="openai",
+    model="qwen3.7-max",
+    base_url=_OPC_BASE,
+    timeout_seconds=_OPC_TIMEOUT,
+    default_max_tokens=_OPC_MAX_OUT,
+    max_retries=_OPC_RETRY,
+    api_key_env=_OPC_ENV,
+    token_hard_limit=_OPC_BUDGET,
+))
+
+_register(ModelProfile(
+    profile_id="opencode-glm-52-writer",
+    provider="openai",
+    model="glm-5.2",
+    base_url=_OPC_BASE,
+    timeout_seconds=_OPC_TIMEOUT,
+    default_max_tokens=_OPC_MAX_OUT,
+    max_retries=_OPC_RETRY,
+    api_key_env=_OPC_ENV,
+    token_hard_limit=_OPC_BUDGET,
+))
+
+_register(ModelProfile(
+    profile_id="opencode-kimi-code-writer",
+    provider="openai",
+    model="kimi-k2.7-code",
+    base_url=_OPC_BASE,
+    timeout_seconds=_OPC_TIMEOUT,
+    default_max_tokens=_OPC_MAX_OUT,
+    max_retries=_OPC_RETRY,
+    api_key_env=_OPC_ENV,
+    token_hard_limit=_OPC_BUDGET,
+))
+
+_register(ModelProfile(
+    profile_id="opencode-mimo-pro-writer",
+    provider="openai",
+    model="mimo-v2.5-pro",
+    base_url=_OPC_BASE,
+    timeout_seconds=_OPC_TIMEOUT,
+    default_max_tokens=_OPC_MAX_OUT,
+    max_retries=_OPC_RETRY,
+    api_key_env=_OPC_ENV,
+    token_hard_limit=_OPC_BUDGET,
+))
+
+_register(ModelProfile(
+    profile_id="opencode-minimax-m3-writer",
+    provider="openai",
+    model="minimax-m3",
+    base_url=_OPC_BASE,
+    timeout_seconds=_OPC_TIMEOUT,
+    default_max_tokens=_OPC_MAX_OUT,
+    max_retries=_OPC_RETRY,
+    api_key_env=_OPC_ENV,
+    token_hard_limit=_OPC_BUDGET,
+))
+
 # Fake profiles for testing
 _register(ModelProfile(
     profile_id="fake-director",

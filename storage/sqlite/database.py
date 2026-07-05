@@ -350,6 +350,107 @@ CREATE INDEX IF NOT EXISTS idx_bootstrap_receipts_session
     ON bootstrap_receipts(session_id);
 """,
     ),
+    (
+        5,
+        "Novel mode tables: projects, volumes, chapter plans, drafts, ledger, characters, batches, references",
+        """
+CREATE TABLE IF NOT EXISTS novel_projects (
+    project_id TEXT PRIMARY KEY,
+    title TEXT NOT NULL DEFAULT '',
+    genre TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'planning',
+    project_json TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS novel_volumes (
+    volume_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    volume_index INTEGER NOT NULL DEFAULT 0,
+    title TEXT NOT NULL DEFAULT '',
+    volume_json TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (project_id) REFERENCES novel_projects(project_id)
+);
+CREATE INDEX IF NOT EXISTS idx_novel_volumes_project ON novel_volumes(project_id);
+
+CREATE TABLE IF NOT EXISTS novel_chapter_plans (
+    chapter_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    chapter_index INTEGER NOT NULL DEFAULT 0,
+    title TEXT NOT NULL DEFAULT '',
+    plan_json TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (project_id) REFERENCES novel_projects(project_id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_novel_chapter_plans_index
+    ON novel_chapter_plans(project_id, chapter_index);
+
+CREATE TABLE IF NOT EXISTS novel_chapter_drafts (
+    draft_id TEXT PRIMARY KEY,
+    chapter_id TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 1,
+    status TEXT NOT NULL DEFAULT 'draft',
+    draft_json TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (chapter_id) REFERENCES novel_chapter_plans(chapter_id)
+);
+CREATE INDEX IF NOT EXISTS idx_novel_drafts_chapter ON novel_chapter_drafts(chapter_id, revision DESC);
+
+CREATE TABLE IF NOT EXISTS novel_ledger_items (
+    item_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    section TEXT NOT NULL DEFAULT '',
+    entity TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'active',
+    source_chapter INTEGER NOT NULL DEFAULT 0,
+    item_json TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (project_id) REFERENCES novel_projects(project_id)
+);
+CREATE INDEX IF NOT EXISTS idx_novel_ledger_project ON novel_ledger_items(project_id, section);
+CREATE INDEX IF NOT EXISTS idx_novel_ledger_entity ON novel_ledger_items(project_id, entity);
+
+CREATE TABLE IF NOT EXISTS novel_characters (
+    character_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    role TEXT NOT NULL DEFAULT 'supporting',
+    character_json TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (project_id) REFERENCES novel_projects(project_id)
+);
+CREATE INDEX IF NOT EXISTS idx_novel_characters_project ON novel_characters(project_id);
+
+CREATE TABLE IF NOT EXISTS novel_batch_progress (
+    batch_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    chapter_start INTEGER NOT NULL DEFAULT 0,
+    chapter_end INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending',
+    progress_json TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (project_id) REFERENCES novel_projects(project_id)
+);
+CREATE INDEX IF NOT EXISTS idx_novel_batch_project ON novel_batch_progress(project_id);
+
+CREATE TABLE IF NOT EXISTS novel_reference_books (
+    book_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    role TEXT NOT NULL DEFAULT 'benchmark',
+    book_json TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (project_id) REFERENCES novel_projects(project_id)
+);
+CREATE INDEX IF NOT EXISTS idx_novel_references_project ON novel_reference_books(project_id);
+""",
+    ),
 ]
 
 
@@ -363,7 +464,7 @@ class Database:
     def connect(self) -> sqlite3.Connection:
         """Get or create a database connection."""
         if self._connection is None:
-            self._connection = sqlite3.connect(self.db_path)
+            self._connection = sqlite3.connect(self.db_path, check_same_thread=False)
             self._connection.execute("PRAGMA journal_mode=WAL")
             self._connection.execute("PRAGMA foreign_keys=ON")
             self._connection.row_factory = sqlite3.Row

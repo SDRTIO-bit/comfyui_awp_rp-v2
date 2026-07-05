@@ -37,6 +37,7 @@ from .history_recall_trigger_policy import TriggerResult
 from .history_recall_query_planner import HistoryRecallQueryPlanner
 from .recall_evidence_ranker import RecallEvidenceRanker
 from .history_recall_validator import HistoryRecallValidator
+from .snapshot_content import worldbook_entry_excerpt
 
 
 class HistoryRecallRuntime:
@@ -314,7 +315,7 @@ class HistoryRecallRuntime:
                 evidence_id=f"ev_wb_{i}",
                 source_type=EvidenceSourceType.WORLDBOOK,
                 source_ref=wb.get("title", f"wb_{i}"),
-                excerpt=wb.get("content", "")[:200],
+                excerpt=worldbook_entry_excerpt(wb, 200),
                 confidence=0.5,
                 recency=0.5,
                 relevance_score=0.3,

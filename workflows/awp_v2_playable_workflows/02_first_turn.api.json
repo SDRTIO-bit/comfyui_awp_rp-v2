@@ -1,0 +1,298 @@
+{
+  "last_node_id": 12,
+  "last_link_id": 5,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "AWPV2PersistentFirstTurn",
+      "pos": [
+        60,
+        80
+      ],
+      "size": [
+        390,
+        300
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "session_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "player_input",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "workflow_run_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "trace_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "turn_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "attempt_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "request_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "run_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "director_profile_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "writer_profile_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "writer_preset_path",
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "receipt",
+          "type": "FIRST_TURN_RECEIPT",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "first_turn_context",
+          "type": "JSON",
+          "links": [
+            5
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "diagnostics",
+          "type": "FIRST_TURN_DIAGNOSTICS",
+          "links": [
+            2,
+            5
+          ],
+          "slot_index": 2
+        },
+        {
+          "name": "card_state",
+          "type": "CARD_STATE",
+          "links": [],
+          "slot_index": 3
+        },
+        {
+          "name": "turn_record",
+          "type": "TURN_RECORD",
+          "links": [
+            3,
+            4
+          ],
+          "slot_index": 4
+        },
+        {
+          "name": "round_snapshot",
+          "type": "ROUND_SNAPSHOT",
+          "links": [],
+          "slot_index": 5
+        }
+      ],
+      "properties": {},
+      "_meta": {
+        "title": "② 首回合：玩家输入"
+      },
+      "widgets_values": [
+        "my-session-001",
+        "我推开院门，看见一个穿粗布衣裳的年轻女子在井边打水。",
+        "",
+        "",
+        "turn-001",
+        "",
+        "req-turn-001",
+        "run-turn-001",
+        "deepseek-v4-flash-director",
+        "deepseek-v4-pro-writer",
+        ""
+      ]
+    },
+    {
+      "id": 10,
+      "type": "AWPV2AcceptedTextOutput",
+      "pos": [
+        480,
+        70
+      ],
+      "size": [
+        320,
+        80
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "turn_record",
+          "type": "TURN_RECORD",
+          "link": 3
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "_meta": {
+        "title": "【输出】玩家可见正文"
+      }
+    },
+    {
+      "id": 11,
+      "type": "AWPV2TurnResultProbe",
+      "pos": [
+        480,
+        190
+      ],
+      "size": [
+        340,
+        130
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "receipt",
+          "type": "FIRST_TURN_RECEIPT",
+          "link": 1
+        },
+        {
+          "name": "diagnostics",
+          "type": "FIRST_TURN_DIAGNOSTICS",
+          "link": 2
+        },
+        {
+          "name": "turn_record",
+          "type": "TURN_RECORD",
+          "link": 4
+        },
+        {
+          "name": "turn_kind",
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "_meta": {
+        "title": "【输出】回合结果（安全摘要）"
+      },
+      "widgets_values": [
+        "first"
+      ]
+    },
+    {
+      "id": 12,
+      "type": "AWPV2TraceDisplay",
+      "pos": [
+        480,
+        350
+      ],
+      "size": [
+        340,
+        100
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "data",
+          "type": "JSON",
+          "link": 5
+        },
+        {
+          "name": "label",
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "_meta": {
+        "title": "【调试】First Turn Context"
+      },
+      "widgets_values": [
+        "First Turn Context"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      11,
+      0,
+      "FIRST_TURN_RECEIPT"
+    ],
+    [
+      2,
+      1,
+      2,
+      11,
+      1,
+      "FIRST_TURN_DIAGNOSTICS"
+    ],
+    [
+      3,
+      1,
+      4,
+      10,
+      0,
+      "TURN_RECORD"
+    ],
+    [
+      4,
+      1,
+      4,
+      11,
+      2,
+      "TURN_RECORD"
+    ],
+    [
+      5,
+      1,
+      1,
+      12,
+      0,
+      "JSON"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4,
+  "_comment": "正式流程第 2 步：仅在 bootstrap 已成功且会话还没有 TurnRecord 时运行。此节点内部走完整 PersistentTurnEngine。",
+  "_usage": "导入后只修改节点「② 首回合：玩家输入」的 widgets。每个新回合必须使用新的 turn_id、request_id、run_id。"
+}

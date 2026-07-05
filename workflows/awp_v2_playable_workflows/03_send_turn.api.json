@@ -1,0 +1,301 @@
+{
+  "last_node_id": 12,
+  "last_link_id": 5,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "AWPV2PersistentContinuationTurn",
+      "pos": [
+        60,
+        80
+      ],
+      "size": [
+        390,
+        300
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "session_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "player_input",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "workflow_run_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "trace_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "turn_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "attempt_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "request_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "run_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "director_profile_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "writer_profile_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "writer_preset_path",
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "receipt",
+          "type": "FIRST_TURN_RECEIPT",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "continuation_context",
+          "type": "JSON",
+          "links": [
+            5
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "diagnostics",
+          "type": "FIRST_TURN_DIAGNOSTICS",
+          "links": [
+            2
+          ],
+          "slot_index": 2
+        },
+        {
+          "name": "card_state",
+          "type": "CARD_STATE",
+          "links": [],
+          "slot_index": 3
+        },
+        {
+          "name": "turn_record",
+          "type": "TURN_RECORD",
+          "links": [
+            3,
+            4
+          ],
+          "slot_index": 4
+        },
+        {
+          "name": "round_snapshot",
+          "type": "ROUND_SNAPSHOT",
+          "links": [],
+          "slot_index": 5
+        }
+      ],
+      "properties": {},
+      "_meta": {
+        "title": "03 Normal Turn - Persistent Engine"
+      },
+      "widgets_values": [
+        "my-session-001",
+        "Player input goes here.",
+        "",
+        "",
+        "turn-002",
+        "",
+        "req-turn-002",
+        "run-turn-002",
+        "deepseek-v4-flash-director",
+        "deepseek-v4-pro-writer",
+        ""
+      ]
+    },
+    {
+      "id": 10,
+      "type": "AWPV2AcceptedTextOutput",
+      "pos": [
+        500,
+        70
+      ],
+      "size": [
+        320,
+        80
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "turn_record",
+          "type": "TURN_RECORD",
+          "link": 3
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "_meta": {
+        "title": "Output - Accepted Text"
+      }
+    },
+    {
+      "id": 11,
+      "type": "AWPV2TurnResultProbe",
+      "pos": [
+        500,
+        190
+      ],
+      "size": [
+        340,
+        150
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "receipt",
+          "type": "FIRST_TURN_RECEIPT",
+          "link": 1
+        },
+        {
+          "name": "diagnostics",
+          "type": "FIRST_TURN_DIAGNOSTICS",
+          "link": 2
+        },
+        {
+          "name": "turn_record",
+          "type": "TURN_RECORD",
+          "link": 4
+        },
+        {
+          "name": "prompt_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "turn_kind",
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "_meta": {
+        "title": "Output - Frontend Turn Result"
+      },
+      "widgets_values": [
+        "continuation",
+        "continuation"
+      ]
+    },
+    {
+      "id": 12,
+      "type": "AWPV2TraceDisplay",
+      "pos": [
+        500,
+        380
+      ],
+      "size": [
+        340,
+        100
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "data",
+          "type": "JSON",
+          "link": 5
+        },
+        {
+          "name": "label",
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "_meta": {
+        "title": "Debug - Continuation Context"
+      },
+      "widgets_values": [
+        "Continuation Context"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      11,
+      0,
+      "FIRST_TURN_RECEIPT"
+    ],
+    [
+      2,
+      1,
+      2,
+      11,
+      1,
+      "FIRST_TURN_DIAGNOSTICS"
+    ],
+    [
+      3,
+      1,
+      4,
+      10,
+      0,
+      "TURN_RECORD"
+    ],
+    [
+      4,
+      1,
+      4,
+      11,
+      2,
+      "TURN_RECORD"
+    ],
+    [
+      5,
+      1,
+      1,
+      12,
+      0,
+      "JSON"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

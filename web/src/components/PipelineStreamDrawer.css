@@ -1,0 +1,103 @@
+.pipeline-stream-drawer .ant-drawer-body {
+  background:
+    linear-gradient(180deg, rgba(22, 119, 255, 0.07), rgba(22, 119, 255, 0) 160px),
+    #f7f9fc;
+  padding: 14px;
+}
+
+.pipeline-step-list {
+  position: relative;
+  width: 100%;
+}
+
+.pipeline-step-list::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  left: 18px;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(22, 119, 255, 0.36), rgba(140, 140, 140, 0.18));
+}
+
+.pipeline-step-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(5, 5, 5, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+  animation: pipeline-step-in 180ms ease-out both;
+}
+
+.pipeline-console-entry {
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  padding: 10px;
+  border-radius: 6px;
+  background: #111827;
+  color: #e5e7eb;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pipeline-step-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: #d9d9d9;
+}
+
+.pipeline-step-card.done::before {
+  background: #52c41a;
+}
+
+.pipeline-step-card.failed::before {
+  background: #ff4d4f;
+}
+
+.pipeline-step-card.pending::before {
+  background: #1677ff;
+  animation: pipeline-pulse 1.35s ease-in-out infinite;
+}
+
+.pipeline-step-icon {
+  font-size: 15px;
+}
+
+.pipeline-step-icon.done {
+  color: #52c41a;
+}
+
+.pipeline-step-icon.failed {
+  color: #ff4d4f;
+}
+
+.pipeline-step-icon.pending {
+  color: #1677ff;
+}
+
+@keyframes pipeline-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pipeline-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}

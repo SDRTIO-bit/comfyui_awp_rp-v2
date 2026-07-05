@@ -22,11 +22,14 @@ class TestRoundSnapshotContract:
             card_id="c", session_id="s",
             base_card_state_revision=3, card_state=state,
             player_input="test input", recent_turn_records=[turn],
+            card_profile_context={"name": "Ari", "personality": "guarded"},
         )
         restored = RoundSnapshot.from_dict(snapshot.to_dict())
         assert restored.snapshot_id == "snap1"
         assert restored.card_id == "c"
         assert restored.base_card_state_revision == 3
+        assert restored.card_profile_context["name"] == "Ari"
+        assert restored.card_profile_context["personality"] == "guarded"
 
     def test_empty_snapshot(self):
         snapshot = RoundSnapshot()

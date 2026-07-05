@@ -41,6 +41,7 @@ from .continuity_evidence_ranker import ContinuityEvidenceRanker
 from .continuity_issue_detector import ContinuityIssueDetector
 from .continuity_validator import ContinuityValidator
 from .continuity_ranker import ContinuityRanker
+from .snapshot_content import worldbook_entry_excerpt
 
 
 class ContinuityRuntime:
@@ -324,7 +325,7 @@ class ContinuityRuntime:
                 evidence_id=f"ev_wb_{i}",
                 source_type=EvidenceSourceType.WORLDBOOK,
                 source_ref=wb.get("title", f"wb_{i}"),
-                excerpt=wb.get("content", "")[:200],
+                excerpt=worldbook_entry_excerpt(wb, 200),
                 location_refs=[scene_location],
                 confidence=0.5,
                 recency=0.3,

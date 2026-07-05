@@ -40,6 +40,7 @@ from .emotion_relationship_query_planner import EmotionRelationshipQueryPlanner
 from .emotion_relationship_candidate_generator import EmotionRelationshipCandidateGenerator
 from .emotion_relationship_validator import EmotionRelationshipValidator
 from .emotion_relationship_ranker import EmotionRelationshipRanker
+from .snapshot_content import worldbook_entry_excerpt
 
 
 class EmotionRelationshipRuntime:
@@ -286,7 +287,7 @@ class EmotionRelationshipRuntime:
                 evidence_id=f"ev_wb_{i}",
                 source_type="worldbook",
                 source_ref=wb.get("title", f"wb_{i}"),
-                excerpt=wb.get("content", "")[:200],
+                excerpt=worldbook_entry_excerpt(wb, 200),
                 confidence=0.5,
                 relevance_score=0.3,
                 created_at=now,

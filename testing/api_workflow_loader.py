@@ -11,11 +11,14 @@ from pathlib import Path
 from typing import Any
 
 
+_DEFAULT_WORKFLOW_DIR = Path(__file__).resolve().parents[1] / "workflows" / "api"
+
+
 class APIWorkflowLoader:
     """Load and validate API workflow files."""
 
-    def __init__(self, workflow_dir: str | Path = "workflows/api") -> None:
-        self.workflow_dir = Path(workflow_dir)
+    def __init__(self, workflow_dir: str | Path | None = None) -> None:
+        self.workflow_dir = Path(workflow_dir) if workflow_dir is not None else _DEFAULT_WORKFLOW_DIR
 
     def load(self, name: str) -> dict[str, Any]:
         """Load an API workflow by name (without .api.json extension)."""

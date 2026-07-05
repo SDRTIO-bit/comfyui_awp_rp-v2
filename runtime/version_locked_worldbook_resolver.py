@@ -42,8 +42,8 @@ class ResolverBudget:
     Only max_entry_chars (per-entry) and max_total_chars (total) remain
     as safety limits to prevent context overflow.
     """
-    max_entry_chars: int = 500
-    max_total_chars: int = 8000
+    max_entry_chars: int = 20000
+    max_total_chars: int = 70000
 
 
 class VersionLockedWorldbookResolver:

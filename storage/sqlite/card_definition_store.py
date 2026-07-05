@@ -85,6 +85,23 @@ class SqliteCardDefinitionStore(CardDefinitionStore):
             ).fetchall()
         return [CardDefinition.from_dict(json.loads(r["definition_json"])) for r in rows]
 
+    def list_by_card(self, logical_card_id: str) -> list[CardDefinition]:
+        conn = self.db.connect()
+        rows = conn.execute(
+            "SELECT definition_json FROM card_definitions "
+            "WHERE card_id=? ORDER BY card_version",
+            (logical_card_id,),
+        ).fetchall()
+        return [CardDefinition.from_dict(json.loads(r["definition_json"])) for r in rows]
+
+    def delete(self, logical_card_id: str) -> None:
+        conn = self.db.connect()
+        conn.execute(
+            "DELETE FROM card_definitions WHERE card_id=?",
+            (logical_card_id,),
+        )
+        conn.commit()
+
     def update_status(self, logical_card_id: str, card_version: int, status: str) -> None:
         conn = self.db.connect()
         conn.execute(

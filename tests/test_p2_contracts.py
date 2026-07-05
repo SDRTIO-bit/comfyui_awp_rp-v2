@@ -177,6 +177,9 @@ class TestWriterInputBundleContract:
         bundle = WriterInputBundle(
             bundle_id="b1", writer_constraints=["don't contradict"],
             accepted_guidance=["add detail"],
+            card_profile_context={"name": "Ari", "personality": "guarded"},
         )
         restored = WriterInputBundle.from_dict(bundle.to_dict())
         assert restored.bundle_id == "b1"
+        assert restored.card_profile_context["name"] == "Ari"
+        assert restored.card_profile_context["personality"] == "guarded"

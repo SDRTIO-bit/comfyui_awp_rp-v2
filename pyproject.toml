@@ -9,6 +9,11 @@ description = "ComfyUI RP Runtime V2: Dual-Master-Agent + Controlled Dynamic Sub
 requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.0",
+    "aiohttp>=3.9.0",
+    "openai>=1.0.0",
+    "anthropic>=0.25.0",
+    "httpx>=0.25.0",
+    "certifi>=2023.0.0",
 ]
 
 [project.optional-dependencies]

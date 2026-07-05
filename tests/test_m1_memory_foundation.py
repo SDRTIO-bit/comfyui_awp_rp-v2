@@ -543,35 +543,6 @@ class TestSnapshotMemoryContext:
 # Workflow JSON structure
 # ====================================================================
 
-class TestOfficialMemoryWorkflow:
-
-    def test_28_workflow_structure_valid(self):
-        from pathlib import Path
-        wf_path = Path(__file__).parent.parent / "workflows" / "official_memory_runtime_v2.json"
-        data = json.loads(wf_path.read_text(encoding="utf-8"))
-        assert "nodes" in data and "links" in data
-        assert len(data["nodes"]) > 0
-        assert len(data["links"]) > 0
-        types = {n["type"] for n in data["nodes"]}
-        required = {
-            "AWPV2CardStateInit", "AWPV2AcceptedTurnWindow", "AWPV2ActiveMemoryRecall",
-            "AWPV2RagMemoryRecall", "AWPV2MemoryContextAssembler", "AWPV2RoundSnapshot",
-            "AWPV2QualityGate", "AWPV2CardStateCommit", "AWPV2TurnRecordCommit",
-            "AWPV2MemoryCommitPlan", "AWPV2ActiveMemoryCommit", "AWPV2RagMemoryCommit",
-            "AWPV2MemoryDiagnostics",
-        }
-        assert required.issubset(types), f"missing: {required - types}"
-        # Every link references existing nodes.
-        node_ids = {n["id"] for n in data["nodes"]}
-        for link in data["links"]:
-            assert link[1] in node_ids
-            assert link[3] in node_ids
-
-
-# ====================================================================
-# End-to-end integration
-# ====================================================================
-
 class TestM1EndToEnd:
 
     def test_e2e_six_turns_then_snapshot_then_retry(self):

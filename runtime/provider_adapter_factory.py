@@ -45,18 +45,20 @@ class AdapterOutcome:
     failure_message: str = ""
 
 
-def _build_deepseek_adapter(profile: ModelProfile):
-    """Construct a DeepSeekAdapter from a real profile.
+def _resolve_api_key_env(profile: ModelProfile) -> str:
+    """Determine the api_key env var from the profile."""
+    return profile.api_key_env or "DEEPSEEK_API_KEY"
 
-    Returns (adapter, outcome). Does NOT raise on missing key — returns a
-    structured failure so the caller can fail closed.
+
+def _check_api_key(profile: ModelProfile) -> tuple[str, AdapterOutcome | None]:
+    """Check if the profile's api key env var is set.
+
+    Returns (api_key_env, None) on success, (api_key_env, failure_outcome) on failure.
     """
-    from ..adapters.llm.deepseek_adapter import DeepSeekAdapter
     import os
-
-    api_key_env = profile.api_key_env or "DEEPSEEK_API_KEY"
+    api_key_env = _resolve_api_key_env(profile)
     if not os.environ.get(api_key_env, ""):
-        return None, AdapterOutcome(
+        return api_key_env, AdapterOutcome(
             is_real=True,
             provider=profile.provider,
             model=profile.model,
@@ -66,7 +68,20 @@ def _build_deepseek_adapter(profile: ModelProfile):
             failure_code="NOT_CONFIGURED",
             failure_message=f"API key env var '{api_key_env}' is not set",
         )
+    return api_key_env, None
 
+
+def _build_deepseek_adapter(profile: ModelProfile):
+    """Construct a DeepSeekAdapter from a real profile.
+
+    Returns (adapter, outcome). Does NOT raise on missing key — returns a
+    structured failure so the caller can fail closed.
+    """
+    api_key_env, failure = _check_api_key(profile)
+    if failure is not None:
+        return None, failure
+
+    from ..adapters.llm.deepseek_adapter import DeepSeekAdapter
     adapter = DeepSeekAdapter(
         model=profile.model,
         default_max_tokens=profile.default_max_tokens,
@@ -81,6 +96,46 @@ def _build_deepseek_adapter(profile: ModelProfile):
         api_key_env=api_key_env,
         built=True,
     )
+
+
+def _build_openai_compatible_adapter(profile: ModelProfile):
+    """Construct an OpenAICompatibleAdapter for Qwen/GLM/etc.
+
+    Quietly falls back to DeepSeekAdapter when base_url matches DeepSeek.
+    """
+    api_key_env, failure = _check_api_key(profile)
+    if failure is not None:
+        return None, failure
+
+    from ..adapters.llm.openai_compatible import OpenAICompatibleAdapter
+    adapter = OpenAICompatibleAdapter(
+        model=profile.model,
+        base_url=profile.base_url,
+        api_key_env=api_key_env,
+        default_max_tokens=profile.default_max_tokens,
+        timeout_seconds=profile.timeout_seconds,
+        max_retries=profile.max_retries,
+    )
+    return adapter, AdapterOutcome(
+        is_real=True,
+        provider=profile.provider,
+        model=profile.model,
+        profile_id=profile.profile_id,
+        api_key_env=api_key_env,
+        built=True,
+    )
+
+
+def _select_adapter(profile: ModelProfile):
+    """Route profile to the correct adapter builder.
+
+    - fake provider → handled by the caller (Director/WriterFactory)
+    - deepseek provider → DeepSeekAdapter
+    - openai provider → OpenAICompatibleAdapter (Qwen, GLM, etc.)
+    """
+    if profile.provider == "deepseek":
+        return _build_deepseek_adapter(profile)
+    return _build_openai_compatible_adapter(profile)
 
 
 class DirectorAdapterFactory:
@@ -102,7 +157,7 @@ class DirectorAdapterFactory:
                 profile_id=profile.profile_id, api_key_env="", built=True,
             )
 
-        ds, outcome = _build_deepseek_adapter(profile)
+        ds, outcome = _select_adapter(profile)
         if not outcome.built:
             return None, outcome
         from ..adapters.llm.real_director_adapter import RealDirectorV2Adapter
@@ -123,7 +178,7 @@ class WriterAdapterFactory:
                 profile_id=profile.profile_id, api_key_env="", built=True,
             )
 
-        ds, outcome = _build_deepseek_adapter(profile)
+        ds, outcome = _select_adapter(profile)
         if not outcome.built:
             return None, outcome
         from ..adapters.llm.real_writer_adapter import RealWriterV2Adapter

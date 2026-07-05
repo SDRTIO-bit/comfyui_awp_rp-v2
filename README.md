@@ -290,21 +290,43 @@ React SPA + REST API，ComfyUI 启动后访问 `http://localhost:8188/awp/`。
 ### API 端点
 
 ```
-GET  /awp/api/v1/sessions                  → 会话列表
-GET  /awp/api/v1/sessions/{id}             → 会话详情
-GET  /awp/api/v1/sessions/{id}/turns       → 回合历史
-GET  /awp/api/v1/sessions/{id}/opening     → 开场白
-GET  /awp/api/v1/cards                     → 角色卡列表
-POST /awp/api/v1/sessions/{id}/continue    → 接续会话
-GET  /awp/{tail:.*}                        → SPA 静态文件
+GET    /awp/api/v1/sessions                         -> 会话列表
+POST   /awp/api/v1/sessions                         -> 从已有角色卡创建会话
+GET    /awp/api/v1/sessions/{id}                    -> 会话详情
+DELETE /awp/api/v1/sessions/{id}                    -> 删除会话及其持久化记录
+GET    /awp/api/v1/sessions/{id}/turns              -> 回合历史
+GET    /awp/api/v1/sessions/{id}/opening            -> 开场白
+POST   /awp/api/v1/sessions/{id}/turn               -> 玩家输入回合
+POST   /awp/api/v1/sessions/{id}/first-turn         -> 首回合
+POST   /awp/api/v1/sessions/{id}/continue           -> AI 自走续写回合
+GET    /awp/api/v1/cards                            -> 角色卡列表
+POST   /awp/api/v1/cards/import                     -> 导入角色卡
+GET    /awp/api/v1/cards/{card_id}/greetings        -> 角色卡开场白列表
+DELETE /awp/api/v1/cards/{card_id}                  -> 删除角色卡及其会话
+GET    /awp/api/v1/workflows                        -> 可用 API workflow
+GET    /awp/api/v1/presets/writer                   -> Writer preset 列表
+GET    /awp/api/v1/presets/writer/{name}            -> Writer preset 内容
+GET    /awp/{tail:.*}                               -> SPA 静态文件
 ```
+
+生成类端点支持双轨执行参数：
+
+```
+?mode=hybrid|python&workflow=<workflow_name>
+```
+
+- `AWP_EXECUTION_MODE=hybrid|python` 控制默认轨道，未设置时默认 `hybrid`。
+- `hybrid` 轨道通过 ComfyUI API workflow 排队执行；`python` 轨道直接调用运行时节点类。
+- 默认 workflow 映射：`turn -> send_turn`，`first_turn -> first_turn`，`continue -> continue_world`。
 
 ### 前端技术栈
 
 - React + TypeScript
 - Vite 构建
 - Ant Design 组件库
-- 页面：Sessions（会话列表）、SessionChat（回合历史）、Cards（角色卡列表）
+- 页面：Sessions（会话列表/新建/删除）、SessionChat（开场白+历史回合/玩家输入/续写）、Cards（导入/删除/greetings 详情）
+- SessionChat 提供高级工作流选择器，可在 `hybrid` 与 `python` 间切换并指定 API workflow。
+- SessionChat 提供 Writer preset 查看器，便于确认当前 preset 内容和本地文件路径。
 
 ---
 

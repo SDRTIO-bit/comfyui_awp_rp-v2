@@ -37,6 +37,7 @@ from .world_life_query_planner import WorldLifeQueryPlanner
 from .world_life_candidate_generator import WorldLifeCandidateGenerator
 from .world_life_validator import WorldLifeValidator
 from .world_life_ranker import WorldLifeRanker
+from .snapshot_content import worldbook_entry_excerpt
 
 
 class WorldLifeRuntime:
@@ -308,7 +309,7 @@ class WorldLifeRuntime:
                 evidence_id=f"ev_wb_{i}",
                 source_type="worldbook",
                 source_ref=wb.get("title", f"wb_{i}"),
-                excerpt=wb.get("content", "")[:200],
+                excerpt=worldbook_entry_excerpt(wb, 200),
                 location_ref=scene_location,
                 confidence=0.5,
                 relevance_score=0.3,

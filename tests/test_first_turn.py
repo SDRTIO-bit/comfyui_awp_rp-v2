@@ -549,6 +549,74 @@ class TestWorldbookRetrieval:
         # Budget should have been enforced
         assert diag.worldbook_budget_dropped_count >= 0
 
+    def test_default_worldbook_budget_keeps_large_card_skeleton(self):
+        """Default resolver budget should support large character-card worldbooks."""
+        from ..runtime.version_locked_worldbook_resolver import VersionLockedWorldbookResolver
+        from ..contracts.card_definition import CardDefinition
+        from ..contracts.worldbook_binding import WorldbookBinding
+
+        class _Defs:
+            def load(self, logical_card_id, card_version):
+                return CardDefinition(
+                    logical_card_id=logical_card_id,
+                    card_version=card_version,
+                    source_id="src1",
+                    source_hash="hash1",
+                    name="large card",
+                    worldbook_catalog=[
+                        {
+                            "entry_id": "e1",
+                            "title": "large constant lore",
+                            "content": "A" * 12000 + "ENTRY_ONE_TAIL",
+                            "constant": True,
+                            "selective": False,
+                            "priority": 100,
+                            "source_order": 1,
+                        },
+                        {
+                            "entry_id": "e2",
+                            "title": "second constant lore",
+                            "content": "B" * 12000 + "ENTRY_TWO_TAIL",
+                            "constant": True,
+                            "selective": False,
+                            "priority": 90,
+                            "source_order": 2,
+                        },
+                    ],
+                    worldbook_chunks=[],
+                )
+
+        binding = type("Binding", (), {
+            "logical_card_id": "card1",
+            "card_version": 1,
+            "source_hash": "hash1",
+            "session_id": "s1",
+        })()
+        wb_binding = WorldbookBinding(
+            worldbook_binding_id="wb1",
+            session_id="s1",
+            logical_card_id="card1",
+            card_version=1,
+            source_hash="hash1",
+            entries=[
+                {"entry_id": "e1", "enabled": True, "constant": True},
+                {"entry_id": "e2", "enabled": True, "constant": True},
+            ],
+        )
+
+        result = VersionLockedWorldbookResolver(_Defs()).resolve(
+            binding=binding,
+            worldbook_binding=wb_binding,
+            opening_record=type("Opening", (), {"safe_display_content": ""})(),
+            player_input="",
+            recent_turns=[],
+        )
+
+        joined = "\n".join(item["content_excerpt"] for item in result["activated_content"])
+        assert "ENTRY_ONE_TAIL" in joined
+        assert "ENTRY_TWO_TAIL" in joined
+        assert result["budget_dropped_entry_ids"] == []
+
     def test_retrieval_explainable(self):
         """Test 12: Retrieval output is explainable."""
         entries = [

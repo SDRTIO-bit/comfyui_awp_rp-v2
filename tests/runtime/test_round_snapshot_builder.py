@@ -45,3 +45,31 @@ class TestRoundSnapshotBuilder:
         self.turn_store.save(record)
         snapshot = self.builder.build("card1", "sess1", "Hello")
         assert len(snapshot.recent_turn_records) == 1
+
+    def test_build_keeps_latest_five_and_summarizes_older_turns(self):
+        for i in range(1, 7):
+            self.turn_store.save(TurnRecord(
+                turn_id=f"t{i}",
+                card_id="card1",
+                session_id="sess1",
+                turn_index=i,
+                player_input=f"player turn {i}",
+                writer_output=f"writer turn {i} full text",
+            ))
+
+        snapshot = self.builder.build("card1", "sess1", "Hello")
+
+        assert [turn.turn_index for turn in snapshot.recent_turn_records] == [6, 5, 4, 3, 2]
+        assert all(turn.turn_index != 1 for turn in snapshot.recent_turn_records)
+        assert "Turn 1" in snapshot.older_turns_summary
+        assert "player turn 1" in snapshot.older_turns_summary
+        assert "writer turn 1 full text" in snapshot.older_turns_summary
+        assert "Turn 2" not in snapshot.older_turns_summary
+
+    def test_memory_recall_query_preserves_full_player_input(self):
+        player_input = "A" * 80 + " CRITICAL_MEMORY_TAIL"
+
+        self.builder.build("card1", "sess1", player_input)
+
+        assert self.active_store.recall_log[-1].request.query == player_input
+        assert self.rag_store.recall_log[-1].request.query == player_input

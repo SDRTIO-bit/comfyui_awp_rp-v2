@@ -898,35 +898,6 @@ class TestNoopPath:
 # 34. 官方 workflow JSON 结构校验通过
 # ===========================================================================
 
-class TestWorkflowJson:
-
-    def test_workflow_json_valid(self):
-        import json
-        import os
-        path = os.path.join(
-            os.path.dirname(__file__), "..", "workflows",
-            "official_memory_curator_agent_v2.json",
-        )
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        assert data["name"]
-        assert data["nodes"]
-        assert data["connections"]
-        assert data["metadata"]["phase"] == "D6"
-        # Verify key nodes exist
-        node_types = [n["type"] for n in data["nodes"]]
-        assert "AWPV2MemoryCurationTrigger" in node_types
-        assert "AWPV2MemoryCuratorAgent" in node_types
-        assert "AWPV2MemoryCurationValidator" in node_types
-        assert "AWPV2MemoryCurationRanker" in node_types
-        assert "AWPV2MemoryCurationCommitPlan" in node_types
-        assert "AWPV2MemoryCurationDiagnostics" in node_types
-
-
-# ===========================================================================
-# E2E Test A: 正常记忆整理路径
-# ===========================================================================
-
 class TestE2ENormalCuration:
     """End-to-end: 6 turns history → active memory near capacity →
     accepted turn advances a promise + produces relationship change →

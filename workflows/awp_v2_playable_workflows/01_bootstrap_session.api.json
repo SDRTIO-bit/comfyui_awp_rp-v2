@@ -1,0 +1,162 @@
+{
+  "last_node_id": 10,
+  "last_link_id": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "AWPV2PersistentBootstrap",
+      "pos": [
+        60,
+        100
+      ],
+      "size": [
+        360,
+        250
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source_path",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "session_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "greeting_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "request_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "run_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "workflow_run_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "trace_id",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "initial_state_seed",
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "session_binding",
+          "type": "CARD_SESSION_BINDING",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "opening_record",
+          "type": "OPENING_RECORD",
+          "links": [],
+          "slot_index": 1
+        },
+        {
+          "name": "worldbook_binding",
+          "type": "WORLDBOOK_BINDING",
+          "links": [],
+          "slot_index": 2
+        },
+        {
+          "name": "bootstrap_receipt",
+          "type": "BOOTSTRAP_RECEIPT",
+          "links": [],
+          "slot_index": 3
+        },
+        {
+          "name": "diagnostics",
+          "type": "DIAGNOSTICS",
+          "links": [
+            1
+          ],
+          "slot_index": 4
+        }
+      ],
+      "properties": {},
+      "_meta": {
+        "title": "① 导入角色卡并创建会话"
+      },
+      "widgets_values": [
+        "C:\\path\\to\\card.json",
+        "my-session-001",
+        "g0",
+        "req-bootstrap-001",
+        "run-bootstrap-001",
+        "",
+        "",
+        "{}"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "AWPV2TraceDisplay",
+      "pos": [
+        500,
+        120
+      ],
+      "size": [
+        340,
+        100
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "data",
+          "type": "DIAGNOSTICS",
+          "link": 1
+        },
+        {
+          "name": "label",
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "_meta": {
+        "title": "【输出】Bootstrap 诊断"
+      },
+      "widgets_values": [
+        "Bootstrap Diagnostics"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      4,
+      10,
+      0,
+      "DIAGNOSTICS"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4,
+  "_comment": "正式流程第 1 步：仅创建/恢复一个会话。先运行它；成功后使用完全相同的 session_id 打开 02_first_turn。不要把它与回合节点放在同一张图里并列执行。",
+  "_usage": "填写 source_path、session_id、greeting_id；每一次新建会话请使用新的 session_id/request_id/run_id。"
+}

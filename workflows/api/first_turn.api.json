@@ -1,0 +1,68 @@
+{
+    "1":  {
+              "inputs":  {
+                             "session_id":  "my-session-001",
+                             "player_input":  "那女子抬起头，竟是周语晴。她眼圈一红：你总算回来了。",
+                             "workflow_run_id":  "",
+                             "trace_id":  "",
+                             "turn_id":  "turn-002",
+                             "attempt_id":  "",
+                             "request_id":  "req-turn-002",
+                             "run_id":  "run-turn-002",
+                             "director_profile_id":  "deepseek-v4-flash-director",
+                             "writer_profile_id":  "deepseek-v4-pro-writer",
+                             "writer_preset_path":  ""
+                         },
+              "class_type":  "AWPV2PersistentFirstTurn",
+              "_meta":  {
+                            "title":  "AWP V2 Persistent First Turn"
+                        }
+          },
+    "10":  {
+               "inputs":  {
+                              "turn_record":  [
+                                                  "1",
+                                                  4
+                                              ]
+                          },
+               "class_type":  "AWPV2AcceptedTextOutput",
+               "_meta":  {
+                             "title":  "AWP V2 Accepted Text Output"
+                         }
+           },
+    "11":  {
+               "inputs":  {
+                              "prompt_id":  "continuation",
+                              "turn_kind":  "first",
+                              "receipt":  [
+                                              "1",
+                                              0
+                                          ],
+                              "diagnostics":  [
+                                                  "1",
+                                                  2
+                                              ],
+                              "turn_record":  [
+                                                  "1",
+                                                  4
+                                              ]
+                          },
+               "class_type":  "AWPV2TurnResultProbe",
+               "_meta":  {
+                             "title":  "AWP V2 Turn Result Probe"
+                         }
+           },
+    "12":  {
+               "inputs":  {
+                              "data":  [
+                                           "1",
+                                           1
+                                       ],
+                              "label":  "AWP Trace"
+                          },
+               "class_type":  "AWPV2TraceDisplay",
+               "_meta":  {
+                             "title":  "AWP V2 追踪显示"
+                         }
+           }
+}

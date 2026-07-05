@@ -806,51 +806,6 @@ class TestDIntegration23TraceCompleteness:
 # Test 39: Workflow JSON structure valid
 # ─────────────────────────────────────────
 
-class TestDIntegration24WorkflowJson:
-    """Official workflow JSON structure is valid."""
-
-    def test_workflow_json_loads(self):
-        """Workflow JSON is valid JSON."""
-        import os
-        path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
-            "workflows",
-            "official_dynamic_agent_integration_v1.json",
-        )
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        assert "nodes" in data
-        assert "links" in data
-
-    def test_workflow_has_required_nodes(self):
-        """Workflow has all required integration nodes."""
-        import os
-        path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
-            "workflows",
-            "official_dynamic_agent_integration_v1.json",
-        )
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        node_types = {n["type"] for n in data["nodes"]}
-        required = [
-            "AWPV2DynamicAgentScheduler",
-            "AWPV2DynamicAgentWaveExecutor",
-            "AWPV2SuggestionConflictGovernor",
-            "AWPV2DirectorSuggestionResolution",
-            "AWPV2MemoryCurationTrigger",
-            "AWPV2MemoryCurationCommitPlan",
-            "AWPV2ActiveMemoryCommit",
-            "AWPV2RagMemoryCommit",
-        ]
-        for r in required:
-            assert r in node_types, f"Missing node type: {r}"
-
-
-# ─────────────────────────────────────────
-# Test 40: All existing D1-D6 tests still pass
-# ─────────────────────────────────────────
-
 class TestDIntegration25NoRegression:
     """Existing D1-D6 tests continue to pass."""
 

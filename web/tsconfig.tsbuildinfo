@@ -1,1 +1,1 @@
-{"root":["./src/main.tsx","./src/api/client.ts","./src/components/layout.tsx","./src/pages/cards.tsx","./src/pages/sessionchat.tsx","./src/pages/sessions.tsx"],"version":"5.9.3"}
+{"root":["./src/main.tsx","./src/api/client.ts","./src/components/layout.tsx","./src/components/newsessionmodal.tsx","./src/components/pipelinestreamdrawer.tsx","./src/components/presetviewer.tsx","./src/components/workflowselector.tsx","./src/pages/cards.tsx","./src/pages/sessionchat.tsx","./src/pages/sessions.tsx"],"version":"5.9.3"}

@@ -72,3 +72,11 @@ class SqliteTurnRecordStore(TurnRecordStore):
             (session_id,),
         ).fetchall()
         return [TurnRecord.from_dict(json.loads(r["record_json"])) for r in rows]
+
+    def delete_by_session(self, session_id: str) -> None:
+        conn = self.db.connect()
+        conn.execute(
+            "DELETE FROM turn_records WHERE session_id=?",
+            (session_id,),
+        )
+        conn.commit()

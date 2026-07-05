@@ -28,6 +28,7 @@ from ..storage.interfaces import (
 from .active_memory_recall_runtime import ActiveMemoryRecallRuntime
 from .rag_recall_runtime import RagMemoryRecallRuntime
 from .memory_context_assembler import MemoryContextAssembler
+from .emotional_summarizer import EmotionalSummarizer
 
 
 class RoundSnapshotBuilder:
@@ -60,6 +61,7 @@ class RoundSnapshotBuilder:
         session_id: str,
         player_input: str,
         worldbook_entries: list[dict[str, Any]] | None = None,
+        card_profile_context: dict[str, Any] | None = None,
     ) -> RoundSnapshot:
         snapshot_id = f"snap_{uuid.uuid4().hex[:12]}"
         trace_id = f"trace_{uuid.uuid4().hex[:12]}"
@@ -79,12 +81,17 @@ class RoundSnapshotBuilder:
         )
         # AcceptedTurnWindow returns most-recent first; keep that order.
         l1_turns = list(window.turns)
+        older_turns_summary = self._build_older_turns_summary(
+            card_id=card_id,
+            session_id=session_id,
+            recent_turns=l1_turns,
+        )
 
         # L2: active memory recall
         active_request = MemoryRecallRequest(
             card_id=card_id, session_id=session_id, snapshot_id=snapshot_id,
             trace_id=trace_id,
-            query=player_input[:50],
+            query=player_input,
             limit=self.max_active_memories,
         )
         active_result = self.active_recall.recall(active_request)
@@ -93,7 +100,7 @@ class RoundSnapshotBuilder:
         rag_request = MemoryRecallRequest(
             card_id=card_id, session_id=session_id, snapshot_id=snapshot_id,
             trace_id=trace_id,
-            query=player_input[:50],
+            query=player_input,
             limit=10,
         )
         rag_result = self.rag_recall.recall(rag_request)
@@ -115,7 +122,9 @@ class RoundSnapshotBuilder:
             base_card_state_revision=card_state.revision,
             card_state=card_state,
             player_input=player_input,
+            card_profile_context=dict(card_profile_context or {}),
             recent_turn_records=l1_turns,
+            older_turns_summary=older_turns_summary,
             active_worldbook_entries=assembled.worldbook_entries,
             active_memories=assembled.active_memories,
             rag_recall=assembled.rag_recall,
@@ -125,3 +134,18 @@ class RoundSnapshotBuilder:
             max_active_memories=self.max_active_memories,
             created_at=now,
         )
+
+    def _build_older_turns_summary(
+        self,
+        *,
+        card_id: str,
+        session_id: str,
+        recent_turns: list[TurnRecord],
+    ) -> str:
+        recent_ids = {turn.turn_id for turn in recent_turns}
+        all_turns = [
+            turn for turn in self.turn_record_store.list_by_session(session_id)
+            if turn.card_id == card_id
+        ]
+        older_turns = [turn for turn in all_turns if turn.turn_id not in recent_ids]
+        return EmotionalSummarizer().summarize(older_turns)

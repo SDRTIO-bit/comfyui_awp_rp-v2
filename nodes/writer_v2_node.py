@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..runtime.default_model_profiles import DEFAULT_WRITER_PROFILE_ID
+
 
 class AWPV2WriterGenerate:
     """Run Writer agent to produce WriterDraft from WriterInputBundle.
@@ -26,7 +28,7 @@ class AWPV2WriterGenerate:
                 "writer_input_bundle": ("WRITER_INPUT_BUNDLE",),
             },
             "optional": {
-                "profile_id": ("STRING", {"default": "fake-writer"}),
+                "profile_id": ("STRING", {"default": DEFAULT_WRITER_PROFILE_ID}),
                 "workflow_run_id": ("STRING", {"default": ""}),
                 "trace_id": ("STRING", {"default": ""}),
                 "turn_id": ("STRING", {"default": ""}),
@@ -43,7 +45,7 @@ class AWPV2WriterGenerate:
     def execute(
         self,
         writer_input_bundle: dict[str, Any],
-        profile_id: str = "fake-writer",
+        profile_id: str = DEFAULT_WRITER_PROFILE_ID,
         workflow_run_id: str = "",
         trace_id: str = "",
         turn_id: str = "",
